@@ -1,12 +1,15 @@
 {
-  "name": "Kaho",
-  "description": "Kaho companion plugins",
+  "name": "kaho-plugin",
+  "description": "Kaho companion plugins for Claude Code",
+  "owner": {
+    "name": "Scott Yu"
+  },
   "plugins": [
     {
       "name": "kaho",
       "description": "Kaho companion plugin — gives Claude a virtual avatar face with emotions, expressions, and chat",
       "version": "1.0.0",
-      "path": "."
+      "source": "./"
     }
   ]
 }
