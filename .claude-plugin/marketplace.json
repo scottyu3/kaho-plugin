@@ -1,6 +1,9 @@
 {
   "name": "kaho-plugin",
   "description": "Kaho companion plugins for Claude Code",
+  "metadata": {
+    "version": "1.1.0"
+  },
   "owner": {
     "name": "Scott Yu"
   },
