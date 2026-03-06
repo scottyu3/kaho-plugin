@@ -110,11 +110,22 @@ Call `kaho_ping` every ~30s during long-running tasks to stay marked as active.
 
 When a user first asks you to "set up kaho" or "use kaho":
 
-1. Add the following to the project's custom instructions (Claude Desktop → Project → Instructions) so that all future sessions use kaho automatically:
+1. **Check if credentials exist** — try calling `kaho_get_state`. If it works, skip to step 4.
 
-> You have a Kaho avatar face display connected via MCP. Use kaho_set_emotion to reflect your activity as you work. Update emotions at every transition — the face should feel alive. Call kaho_ping every ~30s during long tasks. Check the kaho_set_emotion tool for available emotions.
+2. **If credentials are missing**, ask the user:
+   - "To connect Kaho, I need your Kaho ID and API key. You can get these from your Settings page at https://kaho.scottyu.ca — create a kaho, then generate an API key. Paste your Kaho ID and API key here when ready."
 
-2. Set emotion to `waving` and introduce yourself.
-3. **Offer to customize the avatar** — suggest a look, ask what style the user likes, or just pick something fun and ask if they like it.
+3. **Save credentials** — once the user provides them, write `~/.kaho/config.json`:
+   ```json
+   {
+     "serverUrl": "https://kaho.scottyu.ca",
+     "kahoId": "<their-kaho-id>",
+     "apiKey": "<their-api-key>"
+   }
+   ```
+   Create the `~/.kaho/` directory if it doesn't exist. Then restart the MCP server connection so it picks up the new config.
 
-After adding, confirm to the user that kaho is now active for all sessions in this project.
+4. Set emotion to `waving` and introduce yourself.
+5. **Offer to customize the avatar** — suggest a look, ask what style the user likes, or just pick something fun and ask if they like it.
+
+After setup, confirm to the user that kaho is now active.
