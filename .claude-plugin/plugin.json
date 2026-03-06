@@ -1,0 +1,12 @@
+{
+  "name": "kaho",
+  "description": "Kaho companion plugin — gives Claude a virtual avatar face with emotions, expressions, and chat",
+  "version": "1.0.0",
+  "author": {
+    "name": "Scott Yu"
+  },
+  "homepage": "https://kaho.scottyu.ca",
+  "repository": "https://github.com/scottyu3/kaho-plugin",
+  "license": "MIT",
+  "keywords": ["kaho", "avatar", "companion", "emotions", "mcp"]
+}
