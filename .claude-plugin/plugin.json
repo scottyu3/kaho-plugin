@@ -8,5 +8,16 @@
   "homepage": "https://kaho.scottyu.ca",
   "repository": "https://github.com/scottyu3/kaho-plugin",
   "license": "MIT",
-  "keywords": ["kaho", "avatar", "companion", "emotions", "mcp"]
+  "keywords": ["kaho", "avatar", "companion", "emotions", "mcp"],
+  "mcpServers": {
+    "kaho": {
+      "command": "npx",
+      "args": ["-y", "kaho-mcp-server"],
+      "env": {
+        "KAHO_SERVER_URL": "https://kaho.scottyu.ca",
+        "KAHO_ID": "",
+        "KAHO_API_KEY": ""
+      }
+    }
+  }
 }
