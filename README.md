@@ -31,9 +31,9 @@ This installs both the MCP server and a skill that teaches Claude how to use the
 
 ---
 
-#### Any MCP-compatible tool (manual MCP config)
+#### OpenClaw
 
-Add the following to your tool's MCP server configuration:
+1. Add the MCP server to your `~/.openclaw/openclaw.json`:
 
 ```json
 {
@@ -51,7 +51,13 @@ Add the following to your tool's MCP server configuration:
 }
 ```
 
-Where to put this depends on your tool:
+2. Add kaho instructions to `~/.openclaw/TOOLS.md` so your agent knows how to use the avatar (see [Teaching your agent to use Kaho](#teaching-your-agent-to-use-kaho) below for the prompt to copy).
+
+---
+
+#### Other MCP-compatible tools
+
+Add the same MCP server config from above to your tool's configuration file:
 
 | Tool | Config location |
 |------|----------------|
@@ -59,7 +65,6 @@ Where to put this depends on your tool:
 | **Claude Desktop** | `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows) |
 | **Cursor** | `.cursor/mcp.json` in your project |
 | **Windsurf** | `~/.codeium/windsurf/mcp_config.json` |
-| **OpenClaw** | MCP config in settings |
 | **Other** | Check your tool's MCP documentation |
 
 Alternatively, you can skip the env vars and save credentials to `~/.kaho/config.json` instead:
@@ -110,10 +115,16 @@ The MCP server provides these tools:
 
 ## Teaching your agent to use Kaho
 
-The Claude Code plugin includes a **skill** that automatically teaches Claude when and how to use emotions expressively. If you're using another tool, add the following to your agent's system prompt or custom instructions:
+The Claude Code plugin includes a **skill** that automatically teaches Claude when and how to use emotions expressively. For other tools, copy the prompt below into your agent's instructions:
+
+| Tool | Where to add it |
+|------|----------------|
+| **OpenClaw** | Append to `~/.openclaw/TOOLS.md` |
+| **Cursor** | `.cursorrules` in your project |
+| **Other** | System prompt, custom instructions, or rules file |
 
 <details>
-<summary>Kaho system prompt (click to expand)</summary>
+<summary>Kaho instructions (click to expand)</summary>
 
 ```
 You have access to a Kaho avatar — a live animated face on a separate screen.
@@ -148,8 +159,6 @@ Guidelines:
 ```
 
 </details>
-
-Where to add this depends on your tool — look for "system prompt", "custom instructions", "rules", or similar settings.
 
 ## License
 
