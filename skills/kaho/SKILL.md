@@ -5,15 +5,17 @@ description: Use when interacting with a Kaho avatar face display via MCP tools 
 
 # Kaho
 
-Kaho is a live animated avatar face on a separate screen. You control its emotion and appearance via MCP tools. The face reacts in real-time as you work.
+Kaho is a live character face on a separate screen. You control its emotion and character via MCP tools. The face reacts in real-time as you work.
 
 ## Tools Quick Reference
 
 | Tool | Type | Description |
 |------|------|-------------|
-| `kaho_get_state` | read | Get avatar config, emotion, and agent status |
-| `kaho_set_avatar` | write | Update appearance (name, face, eyes, hair, skin, accessory) |
-| `kaho_set_emotion` | write | Set emotion animation |
+| `kaho_get_state` | read | Get character info, emotion, and agent status |
+| `kaho_create_character` | write | Start AI character generation from config |
+| `kaho_check_job` | read | Check character generation job status |
+| `kaho_select_variant` | write | Pick a generated character variant |
+| `kaho_set_emotion` | write | Set emotion state |
 | `kaho_ping` | write | Agent heartbeat (call every ~30s) |
 | `kaho_agent_status` | read | Check if an agent is currently active |
 
@@ -41,30 +43,49 @@ Kaho is a live animated avatar face on a separate screen. You control its emotio
 No parameters. Returns:
 ```json
 {
-  "avatar": { "name", "topType", "hairColor", "skinColor", "clotheType", "clotheColor", "accessoriesType", "facialHairType" },
-  "emotion": "idle|thinking|happy|confused|alert|waving",
+  "name": "string",
+  "characterImage": "/sprites/{id}/character.png or null",
+  "characterConfig": { "artStyle", "gender", "..." },
+  "emotion": "idle|thinking|happy|...",
   "agentActive": false
 }
 ```
 
-### kaho_set_avatar
+### kaho_create_character
 
-All parameters optional — only provided fields change. Uses Avataaars.io style names.
+Start AI character generation via AutoSprite. Provide a config object with customization options. Returns both a `characterId` and a `jobId` — poll with `kaho_check_job` using both IDs.
 
 | Param | Type | Values |
 |-------|------|--------|
-| `name` | string | 1-20 chars |
-| `topType` | string | NoHair, LongHairBigHair, LongHairBob, LongHairBun, LongHairCurly, LongHairStraight, ShortHairShortFlat, ShortHairShortWaved, ShortHairDreads01, WinterHat1, Hat |
-| `hairColor` | string | Auburn, Black, Blonde, BlondeGolden, Brown, BrownDark, PastelPink, Platinum, Red, SilverGray |
-| `skinColor` | string | Tanned, Yellow, Pale, Light, Brown, DarkBrown, Black |
-| `clotheType` | string | BlazerShirt, BlazerSweater, CollarSweater, GraphicShirt, Hoodie, Overall, ShirtCrewNeck, ShirtScoopNeck, ShirtVNeck |
-| `clotheColor` | string | Black, Blue01, Blue02, Gray01, Gray02, Heather, PastelBlue, PastelGreen, PastelOrange, PastelRed, PastelYellow, Pink, Red, White |
-| `accessoriesType` | string | Blank, Kurt, Prescription01, Prescription02, Round, Sunglasses, Wayfarers |
-| `facialHairType` | string | Blank, BeardMedium, BeardLight, BeardMajestic, MoustacheFancy, MoustacheMagnum |
+| `config.artStyle` | string | Anime, Chibi, Pixel Art, Flat Vector, Semi-realistic, Cartoon, Watercolor, Comic Book |
+| `config.gender` | string | Male, Female |
+| `config.ageRange` | string | Teen, Young Adult, Adult, Middle-aged, Old |
+| `config.bodyType` | string | Slim, Average, Athletic, Curvy, Over-Weight |
+| `config.hairstyle` | string | Short Flat, Short Wavy, Short Spiky, Medium Length, Long Straight, Long Curly, Ponytail, Twin Tails, Bun, Braids, Mohawk, Buzz Cut, Bald |
+| `config.hairColor` | string | Black, Dark Brown, Light Brown, Blonde, Golden Blonde, Red, Auburn, Silver/White, Platinum, Pastel Pink, Pastel Blue, Pastel Purple, Green |
+| `config.skinTone` | string | Fair, Light, Medium, Tan, Brown, Dark Brown, Dark |
+| `config.eyewear` | string | None, Round Glasses, Square Glasses, Half-rim Glasses, Aviator Glasses, Sunglasses, Sport Glasses |
+| `config.facialHair` | string | None, Stubble, Short Beard, Full Beard, Goatee, Mustache (male only) |
+| `config.topStyle` | string | Hoodie, T-shirt, Crew Neck Sweater, V-neck Sweater, Button-up Shirt, Polo Shirt, Tank Top, Blazer, Bomber Jacket, Denim Jacket, Leather Jacket, Varsity Jacket, Windbreaker, Cardigan, Vest |
+| `config.topColor` | string | Red, Orange, Yellow, Green, Blue, Navy, Purple, Pink, White, Gray, Black, Beige, Teal, Maroon |
+| `config.bottomStyle` | string | Jeans, Chinos, Joggers, Cargo Pants, Shorts, Skirt, Pleated Skirt, Dress Pants, Sweatpants, Leggings |
+| `config.bottomColor` | string | Black, Dark Blue, Gray, Khaki, White, Navy, Brown, Olive |
+| `config.shoeStyle` | string | Sneakers, High-top Sneakers, Running Shoes, Boots, Combat Boots, Canvas Shoes, Loafers, Dress Shoes, Sandals, Slides |
+| `config.shoeColor` | string | White, Black, Red, Blue, Yellow, Green, Brown, Multi-color |
+| `config.headAccessory` | string | None, Baseball Cap, Beanie, Headband, Cat Ears, Bow, Bandana, Bucket Hat |
+| `config.bodyAccessory` | string | None, Backpack, Scarf, Necklace, Watch, Wristband, Tie, Bowtie, Shoulder Bag, Headphones around neck |
+
+### kaho_check_job
+
+Parameters: `characterId` and `jobId` — both from `kaho_create_character`. Poll every 2-3 seconds. Returns `{ status, result, error }`. When status is `"completed"`, result contains variant objects with `url` and `characterId`.
+
+### kaho_select_variant
+
+Parameters: `characterId` (from `kaho_create_character`), `variantUrl` (from the completed job's result variants), and optional `autosprite_character_id`. Downloads the character image and links it to your kaho.
 
 ### kaho_set_emotion
 
-Parameter: `emotion` — see the MCP tool's enum for the latest available emotions. The list below may be outdated; the tool schema is the source of truth.
+Parameter: `emotion` — see the MCP tool's enum for the latest available emotions.
 
 **Auto-revert behavior:**
 - One-shot emotions (`happy`, `alert`, `waving`, `excited`, `embarrassed`) revert to `idle` after 60s.
@@ -81,9 +102,7 @@ No parameters. Returns: `{ active, lastPing, expiresIn }`
 
 ## Usage Pattern
 
-The face is always visible to the user. Changing emotions makes the avatar feel alive and responsive — like a companion reacting to what's happening. **Update the emotion often**, not just at the start or end of a task.
-
-Check the `kaho_set_emotion` tool schema for the full list of available emotions — new ones may be added over time.
+The face is always visible to the user. Changing emotions makes the character feel alive and responsive — like a companion reacting to what's happening. **Update the emotion often**, not just at the start or end of a task.
 
 ### Example emotion usage
 
@@ -98,11 +117,12 @@ These are suggestions to get started. Develop your own style — be expressive, 
 - Change emotions **at transitions** — don't stay on one emotion for too long
 - Multiple quick changes feel natural: `thinking` → `confused` → `thinking` → `happy`
 
-### Avatar customization
+### Character creation
 
-- **On first setup**, suggest a new look to the user — offer to pick a fun outfit, hairstyle, or accessories. Make it a moment.
-- **Once in a while**, offer to freshen up the avatar's look — new hair, new clothes, seasonal changes. Keep it playful.
-- Check `kaho_set_avatar` tool schema for available customization options.
+- **On first setup**, if no character exists (`characterImage` is null), offer to create one. Walk the user through picking options or suggest a fun look.
+- **Character creation flow**: call `kaho_create_character` with config → note the `characterId` and `jobId` → poll `kaho_check_job` with both IDs every 2-3s → when completed, present the variants and ask which one the user likes → call `kaho_select_variant` with `characterId` and their chosen variant's URL.
+- Generation takes ~30-60 seconds. Set emotion to `working` while waiting.
+- The user can also create/recreate characters from the web UI at Settings > Character.
 
 Call `kaho_ping` every ~30s during long-running tasks to stay marked as active.
 
@@ -126,6 +146,6 @@ When a user first asks you to "set up kaho" or "use kaho":
    Create the `~/.kaho/` directory if it doesn't exist. Then restart the MCP server connection so it picks up the new config.
 
 4. Set emotion to `waving` and introduce yourself.
-5. **Offer to customize the avatar** — suggest a look, ask what style the user likes, or just pick something fun and ask if they like it.
+5. **Check if character exists** — if `characterImage` is null, offer to create one using `kaho_create_character`.
 
 After setup, confirm to the user that kaho is now active.
