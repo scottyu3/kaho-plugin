@@ -54,6 +54,8 @@ Open your kaho from the dashboard. Leave it on another screen, a tablet, or your
 
 That's it — your agent now has a face.
 
+**Example:** [kaho.scottyu.ca/kahos/85b165cf-94a1-454a-9752-0971ee114267](https://kaho.scottyu.ca/kahos/85b165cf-94a1-454a-9752-0971ee114267)
+
 **Wall view:** If you have multiple kahos, use `/wall?ids=id1,id2` to see them all on one screen.
 
 ## What it does
