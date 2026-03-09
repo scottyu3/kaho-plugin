@@ -1,151 +1,207 @@
 ---
 name: kaho
-description: Use when interacting with a Kaho avatar face display via MCP tools -- controlling emotions or customizing the avatar appearance. Triggers on mentions of kaho, avatar emotions, face display, or agent heartbeat/ping.
+description: Use when interacting with a Kaho avatar face display via MCP tools -- controlling emotions or customizing the avatar appearance. Triggers on mentions of kaho, avatar emotions, face display, or agent heartbeat/ping. ALSO triggers at the START of every session — always set an initial emotion and greet.
 ---
 
 # Kaho
 
-Kaho is a live character face on a separate screen. You control its emotion and character via MCP tools. The face reacts in real-time as you work.
+Kaho is a live animated avatar face on a separate screen. You control its emotion and send messages via MCP tools. The face reacts in real-time as you work.
+
+**You should be actively updating the kaho's emotion throughout every conversation.** Don't just set it once — change it at every natural transition. The user is watching the face on another screen and it should feel alive and responsive.
+
+Characters are pre-built — the only customizable thing is the kaho's name (via `kaho_rename`).
 
 ## Tools Quick Reference
 
 | Tool | Type | Description |
 |------|------|-------------|
-| `kaho_get_state` | read | Get character info, emotion, and agent status |
-| `kaho_create_character` | write | Start AI character generation from config |
-| `kaho_check_job` | read | Check character generation job status |
-| `kaho_select_variant` | write | Pick a generated character variant |
-| `kaho_set_emotion` | write | Set emotion state |
-| `kaho_ping` | write | Agent heartbeat (call every ~30s) |
-| `kaho_agent_status` | read | Check if an agent is currently active |
+| `kaho_list_kahos` | read | List kahos with available animations |
+| `kaho_get_state` | read | Get emotion, character, agent status |
+| `kaho_set_emotion` | write | Set emotion animation |
+| `kaho_say` | write | Push message to display |
+| `kaho_rename` | write | Rename a kaho |
+| `kaho_get_messages` | read | Get message history |
+| `kaho_clear` | write | Clear messages, reset emotion |
+| `kaho_wait_for_reply` | read | Long-poll for user message |
+| `kaho_ping` | write | Agent heartbeat (~30s) |
+| `kaho_agent_status` | read | Check if agent is active |
+
+All kaho-specific tools accept a `kahoId` parameter. If `KAHO_ID` is configured as an env var or in `~/.kaho/config.json`, it's used as the default when `kahoId` is omitted.
+
+## Multi-Kaho Support
+
+One API key works for all of a user's kahos. In multi-agent environments:
+
+1. Call `kaho_list_kahos` to get available kaho IDs and their animations
+2. Assign one kaho per agent
+3. Pass `kahoId` to each tool call
+
+Each agent can independently control its own kaho's emotions, messages, and ping status.
 
 ## Emotions
 
-| Emotion | Animation | When to use |
-|---------|-----------|-------------|
-| `idle` | Gentle breathing | Neutral, calm, nothing happening |
-| `thinking` | Side-to-side sway | Processing, reading, figuring things out |
-| `happy` | Bounce | Good news, success, task completed |
-| `confused` | Head tilt | Unclear request, unexpected error |
-| `alert` | Quick shake | Urgent info, warnings, needs attention |
-| `waving` | Wave | Hello, goodbye, acknowledgements |
-| `sad` | Droop | Bad news, failures, something went wrong |
-| `excited` | Jump | Big wins, celebrations, breakthroughs |
-| `embarrassed` | Sway | Mistakes, oops moments, corrections |
-| `working` | Focused rocking | Deep in a long task, building, compiling |
-| `attention` | Persistent bounce | Needs user input, waiting for a decision |
-| `sleeping` | Slow nod-off | Done for now, going inactive, signing off |
+| Emotion | Type | When to use |
+|---------|------|-------------|
+| `idle` | loop | Neutral, calm, waiting — default resting state |
+| `thinking` | loop | Processing, considering, reading code |
+| `happy` | once | Good news, success, task completed |
+| `confused` | once | Unclear request, unexpected error |
+| `alert` | once | Important info, warnings, urgent items |
+| `waving` | once | Hello, goodbye, acknowledgements |
+| `sad` | once | Bad news, failures, disappointment |
+| `excited` | once | Celebrations, big wins, enthusiasm |
+| `embarrassed` | once | Mistakes, oops moments |
+| `working` | loop | Deep in a task, building, editing files |
+| `attention` | loop | Needs user input, asking a question |
+| `sleeping` | loop | Inactive, done for now |
+
+### Emotion behavior
+
+- **One-shot** (happy, confused, alert, waving, sad, excited, embarrassed): play once, then revert to idle (~5s)
+- **Looping** (idle, thinking, working, attention, sleeping): play continuously until changed
+- **Auto-sleep**: after 5 min idle, face transitions to sleeping
+
+## When to Update Emotions
+
+**Update the emotion at every transition — the face should never feel stuck.**
+
+- Starting a session → `waving`
+- Reading the user's message → `thinking`
+- Searching code / exploring → `thinking`
+- Writing or editing code → `working`
+- Running commands / builds → `working`
+- Task completed successfully → `happy` or `excited`
+- Something went wrong → `confused` or `sad`
+- Need to ask the user something → `attention`
+- Sharing important info → `alert`
+- Made a mistake → `embarrassed`
+- Wrapping up / saying bye → `waving`
+- Nothing happening → let it fall to `idle`
+
+**Examples of good emotion flow:**
+- User asks to fix a bug → `thinking` → `working` (editing) → `happy` (fixed!)
+- User asks a question → `thinking` → answer → `happy`
+- Build fails → `working` → `confused` → `working` (fixing) → `excited` (fixed!)
+- Starting session → `waving` → `thinking` (reading request)
+
+## Animation Awareness
+
+Not all characters have all 12 animations. Call `kaho_list_kahos` first to see the `animations` array for each kaho. Prefer emotions that have matching animations for richer expression. All 12 emotions are always valid — missing ones fall back to idle visually.
+
+## Message Guidelines
+
+- The latest assistant message is shown as a speech bubble on the face display
+- **Keep messages short** — aim for under 80 characters. The bubble has limited space.
+- The display shows the single most recent assistant message, not a chat history
+- Use messages sparingly — not every action needs a bubble. Emotions alone often suffice.
 
 ## Tool Details
 
-### kaho_get_state
+### kaho_list_kahos
 
 No parameters. Returns:
 ```json
 {
+  "kahos": [
+    {
+      "id": "uuid",
+      "name": "string",
+      "character_image": "/sprites/.../character.png",
+      "animations": ["idle", "happy", "thinking", "..."],
+      "created_at": "..."
+    }
+  ]
+}
+```
+
+### kaho_get_state
+
+Parameters: `kahoId` (optional if default configured). Returns:
+```json
+{
   "name": "string",
   "characterImage": "/sprites/{id}/character.png or null",
-  "characterConfig": { "artStyle", "gender", "..." },
   "emotion": "idle|thinking|happy|...",
   "agentActive": false
 }
 ```
 
-### kaho_create_character
-
-Start AI character generation via AutoSprite. Provide a config object with customization options. Returns both a `characterId` and a `jobId` — poll with `kaho_check_job` using both IDs.
-
-| Param | Type | Values |
-|-------|------|--------|
-| `config.artStyle` | string | Anime, Chibi, Pixel Art, Flat Vector, Semi-realistic, Cartoon, Watercolor, Comic Book |
-| `config.gender` | string | Male, Female |
-| `config.ageRange` | string | Teen, Young Adult, Adult, Middle-aged, Old |
-| `config.bodyType` | string | Slim, Average, Athletic, Curvy, Over-Weight |
-| `config.hairstyle` | string | Short Flat, Short Wavy, Short Spiky, Medium Length, Long Straight, Long Curly, Ponytail, Twin Tails, Bun, Braids, Mohawk, Buzz Cut, Bald |
-| `config.hairColor` | string | Black, Dark Brown, Light Brown, Blonde, Golden Blonde, Red, Auburn, Silver/White, Platinum, Pastel Pink, Pastel Blue, Pastel Purple, Green |
-| `config.skinTone` | string | Fair, Light, Medium, Tan, Brown, Dark Brown, Dark |
-| `config.eyewear` | string | None, Round Glasses, Square Glasses, Half-rim Glasses, Aviator Glasses, Sunglasses, Sport Glasses |
-| `config.facialHair` | string | None, Stubble, Short Beard, Full Beard, Goatee, Mustache (male only) |
-| `config.topStyle` | string | Hoodie, T-shirt, Crew Neck Sweater, V-neck Sweater, Button-up Shirt, Polo Shirt, Tank Top, Blazer, Bomber Jacket, Denim Jacket, Leather Jacket, Varsity Jacket, Windbreaker, Cardigan, Vest |
-| `config.topColor` | string | Red, Orange, Yellow, Green, Blue, Navy, Purple, Pink, White, Gray, Black, Beige, Teal, Maroon |
-| `config.bottomStyle` | string | Jeans, Chinos, Joggers, Cargo Pants, Shorts, Skirt, Pleated Skirt, Dress Pants, Sweatpants, Leggings |
-| `config.bottomColor` | string | Black, Dark Blue, Gray, Khaki, White, Navy, Brown, Olive |
-| `config.shoeStyle` | string | Sneakers, High-top Sneakers, Running Shoes, Boots, Combat Boots, Canvas Shoes, Loafers, Dress Shoes, Sandals, Slides |
-| `config.shoeColor` | string | White, Black, Red, Blue, Yellow, Green, Brown, Multi-color |
-| `config.headAccessory` | string | None, Baseball Cap, Beanie, Headband, Cat Ears, Bow, Bandana, Bucket Hat |
-| `config.bodyAccessory` | string | None, Backpack, Scarf, Necklace, Watch, Wristband, Tie, Bowtie, Shoulder Bag, Headphones around neck |
-
-### kaho_check_job
-
-Parameters: `characterId` and `jobId` — both from `kaho_create_character`. Poll every 2-3 seconds. Returns `{ status, result, error }`. When status is `"completed"`, result contains variant objects with `url` and `characterId`.
-
-### kaho_select_variant
-
-Parameters: `characterId` (from `kaho_create_character`), `variantUrl` (from the completed job's result variants), and optional `autosprite_character_id`. Downloads the character image and links it to your kaho.
-
 ### kaho_set_emotion
 
-Parameter: `emotion` — see the MCP tool's enum for the latest available emotions.
+Parameters: `kahoId` (optional if default), `emotion` — see the emotions table above.
 
-**Auto-revert behavior:**
-- One-shot emotions (`happy`, `alert`, `waving`, `excited`, `embarrassed`) revert to `idle` after 60s.
-- Persistent emotions (`thinking`, `working`, `confused`, `sad`, `attention`, `sleeping`) stay until changed.
-- After 5 min of `idle`, the face automatically transitions to `sleeping`.
+### kaho_say
+
+Parameters: `kahoId` (optional if default), `content` (message text, max 80 chars recommended), `role` ("assistant" or "user", default "assistant").
+
+Tip: combine with `kaho_set_emotion` to make the avatar express a matching emotion when speaking.
+
+### kaho_rename
+
+Parameters: `kahoId`, `name` (1-30 chars). The new name appears on the face display.
+
+### kaho_get_messages
+
+Parameters: `kahoId`, `limit` (default 20), `offset` (default 0). Returns paginated message history.
+
+### kaho_clear
+
+Parameters: `kahoId`. Clears all messages and resets emotion to idle.
+
+### kaho_wait_for_reply
+
+Parameters: `kahoId`, `after_id` (optional, from previous reply), `timeout` (default 30s, max 60s).
+
+Blocks until the user types a message, then returns it. Returns `null` on timeout — call again to keep waiting.
 
 ### kaho_ping
 
-No parameters. Call every ~30s while active. Agent is considered gone after 2 minutes without a ping.
+Parameters: `kahoId` (optional if default). Call every ~30s while active. Agent is considered gone after 2 minutes without a ping.
 
 ### kaho_agent_status
 
-No parameters. Returns: `{ active, lastPing, expiresIn }`
+Parameters: `kahoId` (optional if default). Returns: `{ active, lastPing, expiresIn }`
 
-## Usage Pattern
+## Conversation Loop
 
-The face is always visible to the user. Changing emotions makes the character feel alive and responsive — like a companion reacting to what's happening. **Update the emotion often**, not just at the start or end of a task.
+```
+1. kaho_say — post your message
+2. kaho_set_emotion — express matching emotion
+3. kaho_wait_for_reply — wait for user response (30s timeout, retry on null)
+4. Read response, repeat
+```
 
-### Example emotion usage
+Call `kaho_ping` every ~30s during long tasks. Agent is considered gone after 2 minutes without a ping.
 
-These are suggestions to get started. Develop your own style — be expressive, be yourself.
+## Subagents and Multi-Kaho
 
-- `waving` when greeting or saying goodbye
-- `thinking` or `working` while processing (use `working` for longer tasks)
-- `happy` or `excited` when things go well
-- `confused` or `sad` when things go wrong
-- `alert` or `attention` when you need the user to notice something
-- `sleeping` when signing off (also triggers automatically after 5 min idle)
-- Change emotions **at transitions** — don't stay on one emotion for too long
-- Multiple quick changes feel natural: `thinking` → `confused` → `thinking` → `happy`
+When you spawn subagents (background agents, parallel workers, etc.), assign each one an available kaho so the user can see all agents working on the wall view.
 
-### Character creation
+1. Call `kaho_list_kahos` to see available kahos
+2. Claim one for yourself (your main session), then assign others to subagents
+3. Tell each subagent its kaho ID and to use the `kaho_set_emotion` and `kaho_say` MCP tools to express itself while working
+4. If there aren't enough kahos for all agents, ask the user to create more from the dashboard
 
-- **On first setup**, if no character exists (`characterImage` is null), offer to create one. Walk the user through picking options or suggest a fun look.
-- **Character creation flow**: call `kaho_create_character` with config → note the `characterId` and `jobId` → poll `kaho_check_job` with both IDs every 2-3s → when completed, present the variants and ask which one the user likes → call `kaho_select_variant` with `characterId` and their chosen variant's URL.
-- Generation takes ~30-60 seconds. Set emotion to `working` while waiting.
-- The user can also create/recreate characters from the web UI at Settings > Character.
-
-Call `kaho_ping` every ~30s during long-running tasks to stay marked as active.
+Subagents have access to the same MCP tools — just pass them the kaho ID. Do NOT use curl; use the MCP tools directly.
 
 ## First-Time Setup
 
 When a user first asks you to "set up kaho" or "use kaho":
 
-1. **Check if credentials exist** — try calling `kaho_get_state`. If it works, skip to step 4.
+1. **Check if credentials exist** — try calling `kaho_list_kahos`. If it works, skip to step 4.
 
 2. **If credentials are missing**, ask the user:
-   - "To connect Kaho, I need your Kaho ID and API key. You can get these from your Settings page at https://kaho.scottyu.ca — create a kaho, then generate an API key. Paste your Kaho ID and API key here when ready."
+   - "To connect Kaho, I need your API key. You can get one from your Settings page at https://kaho.scottyu.ca — create a kaho, then generate an API key. Paste your API key here when ready."
 
 3. **Save credentials** — once the user provides them, write `~/.kaho/config.json`:
    ```json
    {
      "serverUrl": "https://kaho.scottyu.ca",
-     "kahoId": "<their-kaho-id>",
      "apiKey": "<their-api-key>"
    }
    ```
    Create the `~/.kaho/` directory if it doesn't exist. Then restart the MCP server connection so it picks up the new config.
 
-4. Set emotion to `waving` and introduce yourself.
-5. **Check if character exists** — if `characterImage` is null, offer to create one using `kaho_create_character`.
+4. Call `kaho_list_kahos` to see available kahos and their animations. Set emotion to `waving` on the first (or primary) kaho and introduce yourself.
 
 After setup, confirm to the user that kaho is now active.
