@@ -1,5 +1,7 @@
 # Kaho — Live Avatar Companion for AI Agents
 
+> **Note:** The hosted Kaho service (kaho.scottyu.ca) is temporarily offline. Self-hosting instructions coming soon. The plugin and MCP server still work with any Kaho-compatible server.
+
 Kaho gives your AI agent a live animated avatar face on a separate screen. The face reacts in real-time as the agent works — expressing emotions, showing messages, and keeping things fun.
 
 Works with Claude Code, OpenClaw, and any AI tool that supports MCP.
@@ -8,7 +10,7 @@ Works with Claude Code, OpenClaw, and any AI tool that supports MCP.
 
 ### 1. Create a Kaho
 
-1. Go to [kaho.scottyu.ca](https://kaho.scottyu.ca) and sign in.
+1. Set up a Kaho server (self-hosted).
 2. Create a kaho from the dashboard.
 3. Generate an **API key** (under API Keys on the dashboard).
 4. Copy the key — it won't be shown again. One key works for all your kahos.
@@ -36,7 +38,7 @@ This installs both the MCP server and a skill that teaches Claude how to use the
       "command": "npx",
       "args": ["-y", "kaho-mcp-server"],
       "env": {
-        "KAHO_SERVER_URL": "https://kaho.scottyu.ca",
+        "KAHO_SERVER_URL": "http://localhost:3001",
         "KAHO_API_KEY": "<your-api-key>"
       }
     }
@@ -53,8 +55,6 @@ This installs both the MCP server and a skill that teaches Claude how to use the
 Open your kaho from the dashboard. Leave it on another screen, a tablet, or your phone.
 
 That's it — your agent now has a face.
-
-**Example:** [kaho.scottyu.ca/kahos/85b165cf-94a1-454a-9752-0971ee114267](https://kaho.scottyu.ca/kahos/85b165cf-94a1-454a-9752-0971ee114267)
 
 **Wall view:** If you have multiple kahos, use `/wall?ids=id1,id2` to see them all on one screen.
 
@@ -106,7 +106,7 @@ The MCP server reads credentials from environment variables or `~/.kaho/config.j
 | Env var | Description |
 |---------|-------------|
 | `KAHO_API_KEY` | Your API key (required) |
-| `KAHO_SERVER_URL` | Server URL (default: `https://kaho.scottyu.ca`) |
+| `KAHO_SERVER_URL` | Server URL (default: `http://localhost:3001`) |
 | `KAHO_ID` | Default kaho ID (optional — skips needing `kahoId` in every tool call) |
 
 Alternatively:
@@ -114,7 +114,7 @@ Alternatively:
 ```json
 // ~/.kaho/config.json
 {
-  "serverUrl": "https://kaho.scottyu.ca",
+  "serverUrl": "http://localhost:3001",
   "apiKey": "<your-api-key>",
   "kahoId": "<optional-default-id>"
 }
